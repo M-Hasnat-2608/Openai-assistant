@@ -4,29 +4,17 @@ import time
 from dotenv import load_dotenv
 import os
 
+# Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
 
-open_api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 ASSISTANT_ID = os.getenv("ASSISTANT_ID")
 
-# Initialize the OpenAI client
-client = openai.Client(api_key=open_api_key)
-
-# Create a new thread and store the thread ID
-initial_message = "Hello chat"
-thread = client.beta.threads.create(
-    messages=[
-        {
-            "role": "user",
-            "content": initial_message,
-        }
-    ]
-)
-thread_id = thread.id
-
-def send_message(message_content):
+# Function to send message and get response from the thread
+def send_message(message_content, thread_id):
+    client = openai.Client(api_key=openai.api_key)
     client.beta.threads.messages.create(
         thread_id=thread_id,
         role="user",
@@ -45,10 +33,39 @@ def send_message(message_content):
     return latest_message.content[0].text.value
 
 @app.route('/', methods=['GET'])
-def returnResponse():
+def return_response():
     input_prompt = request.args.get('query')
-    if not input_prompt:
-        return jsonify({"error": "No query parameter provided"}), 400
+    first_time_or_not = request.args.get('first_time_or_not')
+    input_thread_id = request.args.get('thread_id')
     
-    response = send_message(input_prompt)
-    return jsonify({'output': response})
+    if not input_prompt or not first_time_or_not:
+        return jsonify({"error": "Missing query or first_time_or_not parameter"}), 400
+    
+    # Check if the query is the complex key to terminate the thread
+    complex_key = "terminate_thread"
+    if input_prompt == complex_key:
+        # Terminate the thread (Note: OpenAI API might not support thread termination directly, this is a placeholder)
+        # Assuming we are just acknowledging the termination
+        return jsonify({'output': 'Thread terminated', 'thread_id': input_thread_id})
+    
+    # If it's the first time, create a new thread
+    if first_time_or_not == "1":
+        client = openai.Client(api_key=openai.api_key)
+        initial_message = "Hello chat"
+        thread = client.beta.threads.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": initial_message,
+                }
+            ]
+        )
+        thread_id = thread.id
+    else:
+        # Use the provided thread ID
+        thread_id = input_thread_id
+
+    # Send message and get response
+    response = send_message(input_prompt, thread_id)
+    
+    return jsonify({'output': response, 'thread_id': thread_id})
