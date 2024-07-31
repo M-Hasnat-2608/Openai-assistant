@@ -37,12 +37,12 @@ def return_response():
     input_prompt = request.args.get('query')
     first_time_or_not = request.args.get('first_time_or_not')
     input_thread_id = request.args.get('thread_id')
-    
+    input_difficulty_level = request.args.get('difficulty_level')
     if not input_prompt or not first_time_or_not:
         return jsonify({"error": "Missing query or first_time_or_not parameter"}), 400
     
     # Check if the query is the complex key to terminate the thread
-    complex_key = "terminate_thread"
+    complex_key = "terminate_thread_AbCdEfGhIjKlMnOpQrStUvWxYz"
     if input_prompt == complex_key:
         # Terminate the thread (Note: OpenAI API might not support thread termination directly, this is a placeholder)
         # Assuming we are just acknowledging the termination
@@ -64,7 +64,7 @@ def return_response():
     else:
         # Use the provided thread ID
         thread_id = input_thread_id
-
+    input_prompt= input_prompt + ". my difficulty is " + input_difficulty_level
     # Send message and get response
     response = send_message(input_prompt, thread_id)
     
